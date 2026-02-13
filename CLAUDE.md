@@ -17,7 +17,7 @@ CLI Python pour suivre les deadlines des **Call for Papers** (CFP) des conféren
 
 ## Structure du projet
 
-```
+```text
 cfp-reminders/
 ├── pyproject.toml          # uv, hatchling, Ruff, entry point cfp-reminders
 ├── .gitignore
