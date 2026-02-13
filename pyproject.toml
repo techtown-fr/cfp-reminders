@@ -1,0 +1,24 @@
+[project]
+name = "cfp-reminders"
+version = "0.1.0"
+description = "Track CFP deadlines from developers.events"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1",
+    "httpx>=0.27",
+    "rich>=13.0",
+]
+
+[project.scripts]
+cfp-reminders = "cfp_reminders.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-httpx>=0.35",
+]
