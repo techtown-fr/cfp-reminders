@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from rich.console import Console
 from rich.table import Table
 
+# Urgency buckets: 0–7 days (this week), 8–30 days (this month), 31+ days (later)
 WEEK_SECONDS = 7 * 24 * 3600
 MONTH_SECONDS = 30 * 24 * 3600
 

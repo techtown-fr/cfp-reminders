@@ -1,6 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from io import StringIO
+from unittest.mock import MagicMock
 
-from cfp_reminders.display import group_by_urgency
+from datetime import datetime, timedelta, timezone
+from rich.console import Console
+
+from cfp_reminders.display import group_by_urgency, render
 
 NOW = datetime.now(timezone.utc)
 
@@ -57,3 +61,24 @@ def test_group_empty():
     assert groups["this_week"] == []
     assert groups["this_month"] == []
     assert groups["later"] == []
+
+
+def test_render_outputs_tables():
+    cfps = [
+        _make_cfp(3, "Soon Conf"),
+        _make_cfp(15, "Month Conf"),
+    ]
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=True)
+    render(cfps, console=console)
+    output = buf.getvalue()
+    assert "Soon Conf" in output
+    assert "Month Conf" in output
+
+
+def test_render_empty_shows_message():
+    console = MagicMock()
+    render([], console=console)
+    console.print.assert_called()
+    calls_str = " ".join(str(c) for c in console.print.call_args_list)
+    assert "No upcoming" in calls_str

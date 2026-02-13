@@ -18,11 +18,17 @@ class Cache:
     def read(self, *, allow_stale: bool = False) -> list | None:
         if not self._data_path.exists() or not self._meta_path.exists():
             return None
-        meta = json.loads(self._meta_path.read_text())
-        age = time.time() - meta["written_at"]
-        if age > self.ttl_seconds and not allow_stale:
+        try:
+            meta = json.loads(self._meta_path.read_text())
+            age = time.time() - meta["written_at"]
+            if age > self.ttl_seconds and not allow_stale:
+                return None
+            data = json.loads(self._data_path.read_text())
+            if not isinstance(data, list):
+                return None
+            return data
+        except (json.JSONDecodeError, KeyError, TypeError):
             return None
-        return json.loads(self._data_path.read_text())
 
     def write(self, data: list) -> None:
         self.cache_dir.mkdir(parents=True, exist_ok=True)

@@ -38,3 +38,17 @@ def test_cache_creates_directory(tmp_path):
     cache = Cache(cache_dir=cache_dir, ttl_seconds=3600)
     cache.write([{"test": True}])
     assert cache_dir.exists()
+
+
+def test_read_returns_none_when_meta_corrupted(tmp_path):
+    cache = Cache(cache_dir=tmp_path, ttl_seconds=3600)
+    cache.write([{"conf": {"name": "Test"}}])
+    cache._meta_path.write_text("invalid json {{{")
+    assert cache.read() is None
+
+
+def test_read_returns_none_when_data_not_list(tmp_path):
+    cache = Cache(cache_dir=tmp_path, ttl_seconds=3600)
+    cache.write([{"conf": {"name": "Test"}}])
+    cache._data_path.write_text('{"not": "a list"}')
+    assert cache.read() is None
