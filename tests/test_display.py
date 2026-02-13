@@ -1,12 +1,12 @@
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from unittest.mock import MagicMock
 
-from datetime import datetime, timedelta, timezone
 from rich.console import Console
 
 from cfp_reminders.display import group_by_urgency, render
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def _make_cfp(days_until_deadline: int, name: str = "Conf") -> dict:

@@ -1,14 +1,10 @@
-import time
-from datetime import datetime, timedelta, timezone
-
-import httpx
-import pytest
+from datetime import UTC, datetime, timedelta
 
 from cfp_reminders.fetcher import fetch_cfps, filter_cfps
 
 # Timestamps in milliseconds
-FUTURE_TS = int((datetime.now(timezone.utc) + timedelta(days=30)).timestamp() * 1000)
-PAST_TS = int((datetime.now(timezone.utc) - timedelta(days=1)).timestamp() * 1000)
+FUTURE_TS = int((datetime.now(UTC) + timedelta(days=30)).timestamp() * 1000)
+PAST_TS = int((datetime.now(UTC) - timedelta(days=1)).timestamp() * 1000)
 
 SAMPLE_CFPS = [
     {

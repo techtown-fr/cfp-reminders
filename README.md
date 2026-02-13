@@ -69,9 +69,16 @@ cfp-reminders --country "Belgium"
 
 ```bash
 # Installer les dépendances
-uv sync
+uv sync --all-groups
 
-# Lancer les tests
-uv run pytest
+# Lancer les tests (avec couverture)
+uv run pytest --cov=cfp_reminders
+
+# Linter et formatter (Ruff)
+uv run ruff check . --fix
+uv run ruff format .
+
+# Hooks pre-commit (optionnel)
+uv run pre-commit install
+uv run pre-commit run --all-files
 ```
-

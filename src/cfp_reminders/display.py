@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from rich.console import Console
 from rich.table import Table
@@ -30,7 +30,7 @@ def group_by_urgency(cfps: list[dict]) -> dict[str, list[dict]]:
 
 
 def _format_deadline(until_date_ms: int) -> str:
-    dt = datetime.fromtimestamp(until_date_ms / 1000, tz=timezone.utc)
+    dt = datetime.fromtimestamp(until_date_ms / 1000, tz=UTC)
     return dt.strftime("%b %d, %Y")
 
 

@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import httpx
 from click.testing import CliRunner
 
 from cfp_reminders.cli import main
@@ -59,7 +60,7 @@ def test_default_shows_france(mock_fetch, mock_cache_cls):
 
 
 @patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", side_effect=Exception("Network error"))
+@patch("cfp_reminders.cli.fetch_cfps", side_effect=httpx.RequestError("Network error"))
 def test_network_error_shows_message(mock_fetch, mock_cache_cls):
     mock_cache_cls.return_value = _mock_cache()
     runner = CliRunner()
@@ -101,7 +102,7 @@ def test_country_filter(mock_fetch, mock_cache_cls):
 
 
 @patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", side_effect=Exception("Network error"))
+@patch("cfp_reminders.cli.fetch_cfps", side_effect=httpx.RequestError("Network error"))
 def test_network_error_fallback_to_stale_cache(mock_fetch, mock_cache_cls):
     mock_cache_cls.return_value = _mock_cache(
         read_return=None, stale_return=SAMPLE_CFPS

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+import httpx
 from rich.console import Console
 
 from cfp_reminders.cache import Cache
@@ -29,7 +30,7 @@ def main(country: str, refresh: bool) -> None:
         try:
             cfps = fetch_cfps()
             cache.write(cfps)
-        except Exception as e:
+        except httpx.HTTPError as e:
             # Try stale cache as fallback
             cfps = cache.read(allow_stale=True)
             if cfps is not None:
