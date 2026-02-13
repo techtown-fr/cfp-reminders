@@ -11,13 +11,20 @@ CLI Python pour suivre les deadlines des **Call for Papers** (CFP) des conféren
 - **click** — CLI
 - **httpx** — requêtes HTTP
 - **rich** — affichage terminal (tables, couleurs)
-- **pytest** + **pytest-httpx** — tests
+- **pytest** + **pytest-httpx** + **pytest-cov** — tests et couverture
+- **Ruff** — linter et formatter
+- **pre-commit** — hooks Git (Ruff, trailing-whitespace, etc.)
 
 ## Structure du projet
 
 ```
 cfp-reminders/
-├── pyproject.toml          # uv, hatchling, entry point cfp-reminders
+├── pyproject.toml          # uv, hatchling, Ruff, entry point cfp-reminders
+├── .gitignore
+├── .pre-commit-config.yaml
+├── .github/
+│   ├── workflows/ci.yml   # Lint (Ruff) + tests (pytest-cov)
+│   └── dependabot.yml     # Mises à jour pip + github-actions
 ├── src/cfp_reminders/
 │   ├── cli.py              # Point d'entrée, orchestration
 │   ├── fetcher.py          # GET all-cfps.json + filtre pays
@@ -47,14 +54,19 @@ Filtrage pays : `(France)` dans `conf.location`. Deadlines futures uniquement.
 - **Typage** : annotations de type explicites, `list[dict]` plutôt que `List[dict]`
 - **Imports** : `from __future__ import annotations` en tête de fichier
 - **Tests** : `pytest`, `pytest-httpx` pour mocker les requêtes HTTP
+- **Qualité** : Ruff (lint + format), pre-commit avant commit
 - **Pas de dépendances lourdes** : rester léger (CLI)
 
 ## Commandes utiles
 
 ```bash
-uv sync                    # Installer les dépendances
+uv sync --all-groups       # Installer les dépendances (inclut dev)
 uv run cfp-reminders       # Lancer le CLI
 uv run pytest              # Exécuter les tests
+uv run pytest --cov=cfp_reminders   # Tests avec couverture
+uv run ruff check . --fix  # Linter
+uv run ruff format .       # Formatter
+uv run pre-commit run --all-files   # Vérifier les hooks
 uv tool install .          # Installer en outil global
 ```
 
