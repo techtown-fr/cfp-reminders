@@ -99,3 +99,7 @@ uv run ruff format .
 uv run pre-commit install
 uv run pre-commit run --all-files
 ```
+
+## Licence
+
+[MIT](LICENSE), © 2026 TechTown.

@@ -27,7 +27,7 @@ cfp-reminders/
 ├── .github/
 │   ├── workflows/ci.yml   # Lint (Ruff) + tests (pytest-cov)
 │   ├── workflows/cfp-reminder.yml  # Rappel Google Chat, lundi 9 h 07 Europe/Paris
-│   └── dependabot.yml     # Mises à jour pip + github-actions
+│   └── dependabot.yml     # Mises à jour uv + github-actions
 ├── src/cfp_reminders/
 │   ├── cli.py              # Point d'entrée, orchestration
 │   ├── fetcher.py          # GET all-cfps.json + filtre pays
