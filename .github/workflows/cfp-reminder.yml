@@ -11,13 +11,8 @@ on:
         description: "Print the message in the logs without posting"
         type: boolean
         default: true
-  # Dry-run on PRs so action bumps and code changes exercise this workflow
+  # Dry-run on every PR: it is a required check, so it must never be skipped
   pull_request:
-    paths:
-      - ".github/workflows/cfp-reminder.yml"
-      - "src/**"
-      - "pyproject.toml"
-      - "uv.lock"
 
 permissions:
   contents: read
