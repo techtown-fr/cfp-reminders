@@ -4,17 +4,18 @@ Outil CLI pour suivre les dates limites des **Call for Papers** (CFP) des confé
 
 ## Pourquoi ?
 
-Les deadlines des CFP passent vite. Cet outil agrège les CFP depuis [developers.events](https://developers.events), les filtre par pays, les trie par urgence et les affiche dans le terminal pour ne rien manquer.
+Les deadlines des CFP passent vite. Cet outil agrège les CFP depuis [developers.events](https://developers.events), les filtre par pays, les trie par urgence et les affiche dans le terminal pour ne rien manquer. Chaque lundi, il poste aussi un rappel dans l'espace Google Chat « Events » de TechTown.
 
 ## Quoi ?
 
 - **Source de données** : [developers.events/all-cfps.json](https://developers.events/all-cfps.json)
 - **Filtrage** : CFPs dont la localisation contient le pays demandé (ex. `(France)`)
 - **Groupement par urgence** :
-  - 🔴 **Cette semaine** (0–7 jours)
-  - 🟡 **Ce mois-ci** (8–30 jours)
+  - 🔴 **Cette semaine** (0 à 7 jours)
+  - 🟡 **Ce mois-ci** (8 à 30 jours)
   - 🟢 **Plus tard** (31+ jours)
 - **Cache local** : 1 heure de TTL pour limiter les appels API
+- **Rappel Google Chat** : chaque lundi, les CFP qui ferment dans les 30 jours (voir plus bas)
 
 ## Comment ça marche ?
 

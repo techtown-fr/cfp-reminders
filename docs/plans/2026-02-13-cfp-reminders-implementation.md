@@ -78,7 +78,7 @@ Run:
 uv run pytest --co
 ```
 
-Expected: "no tests ran" (no test files yet), exit 5 — confirms pytest works.
+Expected: "no tests ran" (no test files yet), exit 5, which confirms pytest works.
 
 **Step 6: Commit**
 
@@ -657,7 +657,7 @@ git commit -m "feat: add CLI entry point with click"
 ### Task 6: Integration Test & Final Verification
 
 **Files:**
-- None created — just verification
+- None created, just verification
 
 **Step 1: Verify CLI entry point works**
 

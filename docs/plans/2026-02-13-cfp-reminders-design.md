@@ -1,4 +1,4 @@
-# CFP Reminders — Design Document
+# CFP Reminders: Design Document
 
 ## Problem
 
@@ -8,13 +8,13 @@ Track Call for Papers (CFP) deadlines for tech conferences in France, using data
 
 - **Endpoint:** `https://developers.events/all-cfps.json`
 - **Structure per entry:**
-  - `link` — CFP submission URL
-  - `until` — Deadline (human-readable, e.g. "March-15-2026")
-  - `untilDate` — Deadline as Unix timestamp (milliseconds)
-  - `conf.name` — Conference name
-  - `conf.date` — Conference date(s) as timestamp array
-  - `conf.hyperlink` — Conference homepage
-  - `conf.location` — Location string, e.g. "Paris (France)"
+  - `link`: CFP submission URL
+  - `until`: Deadline (human-readable, e.g. "March-15-2026")
+  - `untilDate`: Deadline as Unix timestamp (milliseconds)
+  - `conf.name`: Conference name
+  - `conf.date`: Conference date(s) as timestamp array
+  - `conf.hyperlink`: Conference homepage
+  - `conf.location`: Location string, e.g. "Paris (France)"
 - **Filtering:** Match `(France)` in `conf.location` (simple string match on the single CFP endpoint)
 
 ## Solution
@@ -38,9 +38,9 @@ cfp-reminders/
 
 ### Dependencies
 
-- `httpx` — HTTP client
-- `rich` — Terminal tables and color coding
-- `click` — CLI framework
+- `httpx`: HTTP client
+- `rich`: Terminal tables and color coding
+- `click`: CLI framework
 
 ### CLI Interface
 
@@ -62,9 +62,9 @@ cfp-reminders --country "Germany"
 3. **Filter:** Keep entries where `conf.location` contains `(<country>)` AND `untilDate` is in the future
 4. **Sort:** By `untilDate` ascending (soonest first)
 5. **Group:** Into urgency buckets:
-   - **Closing this week** (0–7 days) — red
-   - **Closing this month** (8–30 days) — yellow
-   - **Later** (31+ days) — green
+   - **Closing this week** (0 to 7 days), red
+   - **Closing this month** (8 to 30 days), yellow
+   - **Later** (31+ days), green
 6. **Display:** Rich table per group: Conference name, Deadline, Location, CFP link
 
 ### Error Handling
@@ -76,8 +76,8 @@ cfp-reminders --country "Germany"
 
 ## Decisions
 
-- **Single endpoint** (`all-cfps.json`) — simpler than cross-referencing with `all-events.json`
-- **String matching for country** — `(France)` in location field; good enough, avoids extra API call
-- **1-hour cache TTL** — CFP data doesn't change frequently; avoids hammering the API
-- **`uv` for package management** — fast, modern Python tooling
-- **`click` for CLI** — mature and well-documented
+- **Single endpoint** (`all-cfps.json`): simpler than cross-referencing with `all-events.json`
+- **String matching for country**: `(France)` in location field; good enough, avoids extra API call
+- **1-hour cache TTL**: CFP data doesn't change frequently; avoids hammering the API
+- **`uv` for package management**: fast, modern Python tooling
+- **`click` for CLI**: mature and well-documented
