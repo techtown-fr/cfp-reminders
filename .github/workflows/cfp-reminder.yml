@@ -11,6 +11,13 @@ on:
         description: "Print the message in the logs without posting"
         type: boolean
         default: true
+  # Dry-run on PRs so action bumps and code changes exercise this workflow
+  pull_request:
+    paths:
+      - ".github/workflows/cfp-reminder.yml"
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
 
 permissions:
   contents: read
@@ -27,7 +34,7 @@ jobs:
       - name: Post CFP reminder to Google Chat
         env:
           GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' || inputs.dry_run }}
         run: |
           if [ "$DRY_RUN" = "true" ]; then set -- --dry-run; fi
           uv run --frozen --no-dev cfp-reminders --chat "$@"
