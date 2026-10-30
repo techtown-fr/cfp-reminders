@@ -2,12 +2,14 @@ import time
 from unittest.mock import MagicMock, patch
 
 import httpx
+import pytest
 from click.testing import CliRunner
 
 from cfp_reminders.chat import ChatPostError
 from cfp_reminders.cli import main
+from cfp_reminders.display import DAY_SECONDS
 
-FAR_FUTURE_MS = int((time.time() + 365 * 24 * 3600) * 1000)
+FAR_FUTURE_MS = int((time.time() + 365 * DAY_SECONDS) * 1000)
 
 SAMPLE_CFPS = [
     {
@@ -121,85 +123,79 @@ def test_network_error_fallback_to_stale_cache(mock_fetch, mock_cache_cls):
 SOON_CFPS = [
     {
         "link": "https://example.com/soon",
-        "untilDate": int((time.time() + 3 * 24 * 3600) * 1000),
+        "untilDate": int((time.time() + 3 * DAY_SECONDS) * 1000),
         "conf": {"name": "Touraine Tech", "location": "Tours (France)"},
     },
 ]
 WEBHOOK = "https://chat.example/hook?key=SECRETKEY&token=SECRETTOKEN"
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", return_value=SOON_CFPS)
-def test_chat_dry_run_prints_message_without_posting(mock_fetch, mock_cache_cls):
-    mock_cache_cls.return_value = _mock_cache()
-    with patch("cfp_reminders.cli.post_message") as mock_post:
-        result = CliRunner().invoke(main, ["--chat", "--dry-run"])
+@pytest.fixture
+def chat_env():
+    """Patch Cache, fetch_cfps and post_message; tests set fetch's return."""
+    with (
+        patch("cfp_reminders.cli.Cache") as cache_cls,
+        patch("cfp_reminders.cli.fetch_cfps", return_value=SOON_CFPS) as fetch,
+        patch("cfp_reminders.cli.post_message") as post,
+    ):
+        cache_cls.return_value = _mock_cache()
+        yield fetch, post
+
+
+def test_chat_dry_run_prints_message_without_posting(chat_env):
+    _, post = chat_env
+    result = CliRunner().invoke(main, ["--chat", "--dry-run"])
     assert result.exit_code == 0
     assert "<https://example.com/soon|Touraine Tech>" in result.output
-    mock_post.assert_not_called()
+    post.assert_not_called()
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", return_value=SOON_CFPS)
-def test_chat_posts_to_webhook_from_env(mock_fetch, mock_cache_cls):
-    mock_cache_cls.return_value = _mock_cache()
-    with patch("cfp_reminders.cli.post_message") as mock_post:
-        result = CliRunner().invoke(
-            main, ["--chat"], env={"GOOGLE_CHAT_WEBHOOK_URL": WEBHOOK}
-        )
+def test_chat_posts_to_webhook_from_env(chat_env):
+    _, post = chat_env
+    result = CliRunner().invoke(
+        main, ["--chat"], env={"GOOGLE_CHAT_WEBHOOK_URL": WEBHOOK}
+    )
     assert result.exit_code == 0
-    url, text = mock_post.call_args.args
+    url, text = post.call_args.args
     assert url == WEBHOOK
     assert "Touraine Tech" in text
 
 
-def test_chat_without_webhook_exits_1():
+def test_chat_without_webhook_is_a_usage_error():
     result = CliRunner().invoke(main, ["--chat"], env={"GOOGLE_CHAT_WEBHOOK_URL": ""})
-    assert result.exit_code == 1
+    assert result.exit_code == 2
     assert "GOOGLE_CHAT_WEBHOOK_URL" in result.output
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", return_value=SOON_CFPS)
-def test_chat_post_failure_exits_1_without_leaking_url(mock_fetch, mock_cache_cls):
-    mock_cache_cls.return_value = _mock_cache()
-    with patch(
-        "cfp_reminders.cli.post_message",
-        side_effect=ChatPostError("webhook answered HTTP 400"),
-    ):
-        result = CliRunner().invoke(main, ["--chat", "--webhook-url", WEBHOOK])
+def test_chat_post_failure_exits_1_without_leaking_url(chat_env):
+    _, post = chat_env
+    post.side_effect = ChatPostError("webhook answered HTTP 400")
+    result = CliRunner().invoke(main, ["--chat", "--webhook-url", WEBHOOK])
     assert result.exit_code == 1
     assert "HTTP 400" in result.output
     assert "SECRET" not in result.output
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", return_value=SAMPLE_CFPS)
-def test_chat_empty_window_posts_nothing(mock_fetch, mock_cache_cls):
-    mock_cache_cls.return_value = _mock_cache()
-    with patch("cfp_reminders.cli.post_message") as mock_post:
-        result = CliRunner().invoke(main, ["--chat", "--webhook-url", WEBHOOK])
+def test_chat_empty_window_posts_nothing(chat_env):
+    fetch, post = chat_env
+    fetch.return_value = SAMPLE_CFPS
+    result = CliRunner().invoke(main, ["--chat", "--webhook-url", WEBHOOK])
     assert result.exit_code == 0
     assert "nothing posted" in result.output
-    mock_post.assert_not_called()
+    post.assert_not_called()
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", side_effect=httpx.RequestError("down"))
-def test_chat_fetch_failure_exits_1(mock_fetch, mock_cache_cls):
-    mock_cache_cls.return_value = _mock_cache()
+def test_chat_fetch_failure_exits_1(chat_env):
+    fetch, _ = chat_env
+    fetch.side_effect = httpx.RequestError("down")
     result = CliRunner().invoke(main, ["--chat", "--dry-run"])
     assert result.exit_code == 1
 
 
-@patch("cfp_reminders.cli.Cache")
-@patch("cfp_reminders.cli.fetch_cfps", return_value=SAMPLE_CFPS)
-def test_env_webhook_without_chat_flag_keeps_terminal_output(
-    mock_fetch, mock_cache_cls
-):
-    mock_cache_cls.return_value = _mock_cache()
-    with patch("cfp_reminders.cli.post_message") as mock_post:
-        result = CliRunner().invoke(main, env={"GOOGLE_CHAT_WEBHOOK_URL": WEBHOOK})
+def test_env_webhook_without_chat_flag_keeps_terminal_output(chat_env):
+    fetch, post = chat_env
+    fetch.return_value = SAMPLE_CFPS
+    result = CliRunner().invoke(main, env={"GOOGLE_CHAT_WEBHOOK_URL": WEBHOOK})
     assert result.exit_code == 0
     assert "DevFest Paris" in result.output
-    mock_post.assert_not_called()
+    post.assert_not_called()

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import click
@@ -41,8 +40,7 @@ def main(
     """Show upcoming CFP deadlines from developers.events."""
     console = Console()
     if chat and not dry_run and not webhook_url:
-        console.print("[red]Error: --chat needs GOOGLE_CHAT_WEBHOOK_URL.[/red]")
-        sys.exit(1)
+        raise click.UsageError("--chat needs GOOGLE_CHAT_WEBHOOK_URL or --dry-run.")
 
     cache = Cache(cache_dir=DEFAULT_CACHE_DIR, ttl_seconds=DEFAULT_TTL)
 
@@ -62,15 +60,17 @@ def main(
                     f"[yellow]Warning: fetch failed ({e}), using cached data.[/yellow]"
                 )
             else:
-                console.print(f"[red]Error: could not fetch CFP data: {e}[/red]")
                 if chat:
-                    sys.exit(1)
+                    raise click.ClickException(
+                        f"could not fetch CFP data: {e}"
+                    ) from None
+                console.print(f"[red]Error: could not fetch CFP data: {e}[/red]")
                 return
 
     filtered = filter_cfps(cfps, country=country)
 
     if chat:
-        _send_chat(console, filtered, country, days, webhook_url, dry_run)
+        _send_chat(filtered, country, days, webhook_url, dry_run)
         return
 
     if not filtered:
@@ -81,23 +81,16 @@ def main(
 
 
 def _send_chat(
-    console: Console,
-    cfps: list[dict],
-    country: str,
-    days: int,
-    webhook_url: str | None,
-    dry_run: bool,
+    cfps: list[dict], country: str, days: int, webhook_url: str | None, dry_run: bool
 ) -> None:
     message = build_message(cfps, country=country, days=days)
     if message is None:
-        console.print(f"No CFP closing within {days} days, nothing posted.")
-        return
-    if dry_run:
+        click.echo(f"No CFP closing within {days} days, nothing posted.")
+    elif dry_run:
         click.echo(message)
-        return
-    try:
-        post_message(webhook_url, message)
-    except ChatPostError as e:
-        console.print(f"[red]Error: Google Chat post failed: {e}[/red]")
-        sys.exit(1)
-    console.print("Reminder posted to Google Chat.")
+    else:
+        try:
+            post_message(webhook_url, message)
+        except ChatPostError as e:
+            raise click.ClickException(f"Google Chat post failed: {e}") from None
+        click.echo("Reminder posted to Google Chat.")

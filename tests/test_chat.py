@@ -5,8 +5,8 @@ import httpx
 import pytest
 
 from cfp_reminders.chat import ChatPostError, build_message, post_message
+from cfp_reminders.display import DAY_SECONDS
 
-DAY_MS = 24 * 3600 * 1000
 WEBHOOK = (
     "https://chat.googleapis.com/v1/spaces/X/messages?key=SECRETKEY&token=SECRETTOKEN"
 )
@@ -15,7 +15,7 @@ WEBHOOK = (
 def _cfp(name: str, in_days: float, location: str = "Tours (France)") -> dict:
     return {
         "link": f"https://cfp.example/{name}",
-        "untilDate": int(time.time() * 1000 + in_days * DAY_MS),
+        "untilDate": int((time.time() + in_days * DAY_SECONDS) * 1000),
         "conf": {"name": name, "location": location},
     }
 
@@ -25,24 +25,16 @@ def test_returns_none_when_window_is_empty():
     assert build_message([], country="France", days=30) is None
 
 
-def test_keeps_only_cfps_within_window():
+def test_keeps_window_and_groups_by_urgency():
     text = build_message(
         [_cfp("Soon", 3), _cfp("Month", 20), _cfp("Far", 31)],
         country="France",
         days=30,
     )
-    assert "Soon" in text
-    assert "Month" in text
     assert "Far" not in text
-
-
-def test_groups_by_urgency():
-    text = build_message(
-        [_cfp("Soon", 3), _cfp("Month", 20)], country="France", days=30
-    )
+    assert "Plus tard" not in text
     assert text.index("Cette semaine") < text.index("Soon")
     assert text.index("Soon") < text.index("D'ici 30 jours") < text.index("Month")
-    assert "Plus tard" not in text
 
 
 def test_line_has_link_city_and_date():
@@ -66,8 +58,8 @@ def test_falls_back_to_conf_hyperlink_then_plain_name():
 
 def test_message_has_no_em_or_en_dash():
     text = build_message([_cfp("A", 3), _cfp("B", 20)], country="France", days=30)
-    assert "—" not in text
-    assert "–" not in text
+    assert "\u2014" not in text
+    assert "\u2013" not in text
 
 
 def test_post_sends_json_text(httpx_mock):

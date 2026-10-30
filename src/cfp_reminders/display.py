@@ -6,9 +6,10 @@ from datetime import UTC, datetime
 from rich.console import Console
 from rich.table import Table
 
-# Urgency buckets: 0–7 days (this week), 8–30 days (this month), 31+ days (later)
-WEEK_SECONDS = 7 * 24 * 3600
-MONTH_SECONDS = 30 * 24 * 3600
+# Urgency buckets: 0 to 7 days (this week), 8 to 30 days (this month), 31+ days (later)
+DAY_SECONDS = 24 * 3600
+WEEK_SECONDS = 7 * DAY_SECONDS
+MONTH_SECONDS = 30 * DAY_SECONDS
 
 
 def group_by_urgency(cfps: list[dict]) -> dict[str, list[dict]]:
@@ -29,9 +30,8 @@ def group_by_urgency(cfps: list[dict]) -> dict[str, list[dict]]:
     return groups
 
 
-def _format_deadline(until_date_ms: int) -> str:
-    dt = datetime.fromtimestamp(until_date_ms / 1000, tz=UTC)
-    return dt.strftime("%b %d, %Y")
+def format_deadline(until_date_ms: int, fmt: str = "%b %d, %Y") -> str:
+    return datetime.fromtimestamp(until_date_ms / 1000, tz=UTC).strftime(fmt)
 
 
 def _make_table(title: str, cfps: list[dict], style: str) -> Table:
@@ -43,7 +43,7 @@ def _make_table(title: str, cfps: list[dict], style: str) -> Table:
     for cfp in cfps:
         table.add_row(
             cfp["conf"]["name"],
-            _format_deadline(cfp["untilDate"]),
+            format_deadline(cfp["untilDate"]),
             cfp["conf"].get("location", ""),
             cfp.get("link", ""),
         )
