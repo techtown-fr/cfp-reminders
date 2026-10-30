@@ -1,3 +1,4 @@
+import time
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -5,14 +6,16 @@ from click.testing import CliRunner
 
 from cfp_reminders.cli import main
 
+FAR_FUTURE_MS = int((time.time() + 365 * 24 * 3600) * 1000)
+
 SAMPLE_CFPS = [
     {
         "link": "https://example.com/cfp1",
         "until": "March-15-2026",
-        "untilDate": 1773590400000,  # far future
+        "untilDate": FAR_FUTURE_MS,
         "conf": {
             "name": "DevFest Paris",
-            "date": [1773590400000],
+            "date": [FAR_FUTURE_MS],
             "hyperlink": "https://devfest.paris",
             "status": "open",
             "location": "Paris (France)",
@@ -24,10 +27,10 @@ SAMPLE_CFPS_GERMANY = [
     {
         "link": "https://example.com/cfp2",
         "until": "April-01-2026",
-        "untilDate": 1773590400000,
+        "untilDate": FAR_FUTURE_MS,
         "conf": {
             "name": "JSConf Berlin",
-            "date": [1773590400000],
+            "date": [FAR_FUTURE_MS],
             "hyperlink": "https://jsconf.berlin",
             "status": "open",
             "location": "Berlin (Germany)",
