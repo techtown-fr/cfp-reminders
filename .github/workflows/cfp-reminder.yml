@@ -1,0 +1,42 @@
+name: CFP reminder
+
+on:
+  schedule:
+    # 9:07 Paris time, off the hour to dodge GitHub's top-of-hour delays
+    - cron: "7 9 * * 1"
+      timezone: "Europe/Paris"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the message in the logs without posting"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Post CFP reminder to Google Chat
+        env:
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--chat --days 30 --country France)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          uv run cfp-reminders "${args[@]}"

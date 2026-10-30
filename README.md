@@ -64,6 +64,20 @@ cfp-reminders --country "Belgium"
 |--------|-------------|--------|
 | `--country` | Pays à filtrer (ex. `France`, `Germany`) | `France` |
 | `--refresh` | Ignorer le cache et récupérer les données à jour | `false` |
+| `--chat` | Poster un rappel dans Google Chat au lieu d'afficher les tables | `false` |
+| `--webhook-url` | Webhook entrant Google Chat (ou variable `GOOGLE_CHAT_WEBHOOK_URL`) | aucun |
+| `--days` | Fenêtre du rappel : CFP qui ferment dans N jours | `30` |
+| `--dry-run` | Avec `--chat`, affiche le message sans le poster | `false` |
+
+### Rappel hebdomadaire dans Google Chat
+
+Le workflow `.github/workflows/cfp-reminder.yml` poste chaque lundi à 9 h 07 (heure de Paris) les CFP en France qui ferment dans les 30 jours. Si aucun CFP n'est concerné, rien n'est posté.
+
+Mise en place :
+
+1. Dans l'espace Google Chat, ouvrir *Applications et intégrations* > *Webhooks*, puis créer un webhook.
+2. Enregistrer son URL dans le secret `GOOGLE_CHAT_WEBHOOK_URL` du dépôt.
+3. Lancer le workflow à la main (*Run workflow*). Le dry-run est coché par défaut : le message s'affiche alors dans les logs sans être posté.
 
 ## Développement
 
