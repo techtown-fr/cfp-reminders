@@ -80,7 +80,7 @@ Mise en place :
 2. Enregistrer son URL dans le secret `GOOGLE_CHAT_WEBHOOK_URL` du dépôt.
 3. Lancer le workflow à la main (*Run workflow*). Le dry-run est coché par défaut : le message s'affiche alors dans les logs sans être posté.
 
-Chaque PR qui touche ce workflow, `src/`, `pyproject.toml` ou `uv.lock` le lance aussi en dry-run : une mise à jour d'action ou de dépendance qui casserait le rappel est vue avant le merge.
+Chaque PR lance aussi ce workflow en dry-run. Le job `notify` est un check obligatoire sur `main`, avec `lint` et `test` : une PR qui casserait le rappel ne peut pas être mergée.
 
 À savoir : sur un dépôt public, GitHub désactive un workflow planifié après 60 jours sans activité. Un commit ou une réactivation depuis l'onglet *Actions* le relance.
 
