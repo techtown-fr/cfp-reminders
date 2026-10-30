@@ -26,7 +26,11 @@ DEFAULT_TTL = 3600
     help="Google Chat incoming webhook (env: GOOGLE_CHAT_WEBHOOK_URL).",
 )
 @click.option(
-    "--days", default=30, show_default=True, help="Chat reminder window, in days."
+    "--days",
+    type=click.IntRange(min=1),
+    default=30,
+    show_default=True,
+    help="Chat reminder window, in days.",
 )
 @click.option("--dry-run", is_flag=True, help="Print the chat message, do not post.")
 def main(
@@ -45,7 +49,7 @@ def main(
     cache = Cache(cache_dir=DEFAULT_CACHE_DIR, ttl_seconds=DEFAULT_TTL)
 
     cfps = None
-    if not refresh:
+    if not refresh and not chat:
         cfps = cache.read()
 
     if cfps is None:
@@ -53,17 +57,15 @@ def main(
             cfps = fetch_cfps()
             cache.write(cfps)
         except httpx.HTTPError as e:
-            # Try stale cache as fallback
+            # A chat reminder must never be built from stale data
+            if chat:
+                raise click.ClickException(f"could not fetch CFP data: {e}") from None
             cfps = cache.read(allow_stale=True)
             if cfps is not None:
                 console.print(
                     f"[yellow]Warning: fetch failed ({e}), using cached data.[/yellow]"
                 )
             else:
-                if chat:
-                    raise click.ClickException(
-                        f"could not fetch CFP data: {e}"
-                    ) from None
                 console.print(f"[red]Error: could not fetch CFP data: {e}[/red]")
                 return
 

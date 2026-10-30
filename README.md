@@ -80,6 +80,8 @@ Mise en place :
 2. Enregistrer son URL dans le secret `GOOGLE_CHAT_WEBHOOK_URL` du dépôt.
 3. Lancer le workflow à la main (*Run workflow*). Le dry-run est coché par défaut : le message s'affiche alors dans les logs sans être posté.
 
+À savoir : sur un dépôt public, GitHub désactive un workflow planifié après 60 jours sans activité. Un commit ou une réactivation depuis l'onglet *Actions* le relance.
+
 ## Développement
 
 ```bash

@@ -199,3 +199,20 @@ def test_env_webhook_without_chat_flag_keeps_terminal_output(chat_env):
     assert result.exit_code == 0
     assert "DevFest Paris" in result.output
     post.assert_not_called()
+
+
+def test_chat_ignores_cache_and_fails_on_fetch_error(chat_env):
+    fetch, _ = chat_env
+    fetch.side_effect = httpx.RequestError("down")
+    with patch("cfp_reminders.cli.Cache") as cache_cls:
+        cache_cls.return_value = _mock_cache(
+            read_return=SOON_CFPS, stale_return=SOON_CFPS
+        )
+        result = CliRunner().invoke(main, ["--chat", "--dry-run"])
+    assert result.exit_code == 1
+    cache_cls.return_value.read.assert_not_called()
+
+
+def test_days_must_be_positive():
+    result = CliRunner().invoke(main, ["--chat", "--dry-run", "--days", "0"])
+    assert result.exit_code == 2

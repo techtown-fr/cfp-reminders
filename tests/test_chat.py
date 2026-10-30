@@ -4,7 +4,12 @@ import time
 import httpx
 import pytest
 
-from cfp_reminders.chat import ChatPostError, build_message, post_message
+from cfp_reminders.chat import (
+    MAX_CFPS,
+    ChatPostError,
+    build_message,
+    post_message,
+)
 from cfp_reminders.display import DAY_SECONDS
 
 WEBHOOK = (
@@ -40,7 +45,7 @@ def test_keeps_window_and_groups_by_urgency():
 def test_line_has_link_city_and_date():
     cfp = _cfp("Touraine Tech", 3)
     text = build_message([cfp], country="France", days=30)
-    assert "<https://cfp.example/Touraine Tech|Touraine Tech>" in text
+    assert "|Touraine Tech>" in text
     assert "· Tours ·" in text
     assert "clôture le " in text
 
@@ -83,3 +88,47 @@ def test_network_error_hides_webhook_secret(httpx_mock):
         post_message(WEBHOOK, "hello")
     assert "SECRET" not in str(exc.value)
     assert exc.value.__cause__ is None
+
+
+def test_neutralises_chat_markup_in_names_and_cities():
+    cfp = _cfp("Foo <users/all> | Bar", 3, location="Paris <x> (France)")
+    cfp["link"] = "https://cfp.example/foo"
+    text = build_message([cfp], country="France", days=30)
+    line = text.splitlines()[3]
+    assert "<users/all>" not in line
+    assert line.count("<") == 1 and line.count("|") == 1 and line.count(">") == 1
+
+
+def test_drops_unsafe_links():
+    bad = [_cfp(n, 3) for n in ("Pipe", "Js", "Ctl")]
+    bad[0]["link"] = "https://x.example/a|b"
+    bad[1]["link"] = "javascript:alert(1)"
+    bad[2]["link"] = "https://x.example/\x07"
+    text = build_message(bad, country="France", days=30)
+    for name in ("Pipe", "Js", "Ctl"):
+        assert f"• {name} ·" in text
+
+
+def test_encodes_spaces_in_links():
+    text = build_message([_cfp("Touraine Tech", 3)], country="France", days=30)
+    assert "<https://cfp.example/Touraine%20Tech|Touraine Tech>" in text
+
+
+def test_caps_the_number_of_cfps():
+    cfps = [_cfp(f"Conf{i:02d}", 1 + i * 0.5) for i in range(25)]
+    text = build_message(cfps, country="France", days=30)
+    assert text.count("\n• ") == MAX_CFPS
+    assert "+ 5 autres CFP" in text
+    assert "Conf00" in text and "Conf24" not in text
+
+
+def test_redirect_is_an_error(httpx_mock):
+    httpx_mock.add_response(url=WEBHOOK, method="POST", status_code=302)
+    with pytest.raises(ChatPostError):
+        post_message(WEBHOOK, "hello")
+
+
+def test_invalid_url_is_wrapped_without_secret():
+    with pytest.raises(ChatPostError) as exc:
+        post_message("https://chat.example:99999/x?key=SECRETKEY\n", "hello")
+    assert "SECRET" not in str(exc.value)
