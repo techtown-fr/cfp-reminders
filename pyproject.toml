@@ -42,6 +42,7 @@ addopts = "-v"
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.23",
     "pytest>=8.0",
     "pytest-cov>=6.0",
     "pytest-httpx>=0.35",
