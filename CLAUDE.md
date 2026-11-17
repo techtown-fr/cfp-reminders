@@ -33,13 +33,16 @@ cfp-reminders/
 │   ├── fetcher.py          # GET all-cfps.json + filtre pays
 │   ├── cache.py            # Cache JSON TTL 1h (~/.cache/cfp-reminders/)
 │   ├── chat.py             # Message Google Chat + POST webhook
+│   ├── meetown.py          # Snapshot JSON des CFP + POST Meetown (Bearer)
 │   └── display.py          # Groupement urgence + tables Rich
 ├── tests/
 │   ├── test_cli.py
 │   ├── test_chat.py
+│   ├── test_meetown.py     # Valide le snapshot contre le schéma
 │   ├── test_fetcher.py
 │   ├── test_cache.py
 │   └── test_display.py
+├── schemas/cfp-snapshot.schema.json  # Contrat JSON partagé avec Meetown
 └── docs/plans/             # Design docs
 ```
 
@@ -68,6 +71,7 @@ Filtrage pays : `(France)` dans `conf.location`. Deadlines futures uniquement.
 uv sync --all-groups       # Installer les dépendances (inclut dev)
 uv run cfp-reminders       # Lancer le CLI
 uv run cfp-reminders --chat --dry-run   # Aperçu du message Google Chat
+uv run cfp-reminders --meetown --dry-run   # Aperçu du JSON envoyé à Meetown
 uv run pytest              # Exécuter les tests
 uv run pytest --cov=cfp_reminders   # Tests avec couverture
 uv run ruff check . --fix  # Linter
@@ -82,10 +86,13 @@ uv tool install .          # Installer en outil global
 2. **fetcher.py** : GET `https://developers.events/all-cfps.json`, filtre par pays et date
 3. **display.py** : groupe par urgence (0 à 7 j, 8 à 30 j, 31+ j), affiche des tables Rich
 4. **chat.py** (avec `--chat`) : garde les CFP qui ferment dans `--days` jours, formate un message Google Chat, le poste sur `GOOGLE_CHAT_WEBHOOK_URL`. Ne poste rien si la liste est vide.
+5. **meetown.py** (avec `--meetown`) : convertit tous les CFP ouverts du pays au format `schemas/cfp-snapshot.schema.json` et les envoie à `MEETOWN_WEBHOOK_URL` avec `MEETOWN_TOKEN`. Refuse d'envoyer une liste vide : Meetown remplace sa liste à chaque envoi, un snapshot vide (souvent une panne amont) l'effacerait.
 
 ## Règles
 
 - **Webhook = secret** : l'URL porte une clé et un jeton. Ne jamais la logger ni la mettre dans un message d'erreur (`chat.py` coupe la cause avec `from None`). Elle vit dans le secret GitHub `GOOGLE_CHAT_WEBHOOK_URL`.
+- **Jeton Meetown = secret** : même règle que le webhook, l'URL et le jeton ne sortent jamais dans un message d'erreur. HTTPS obligatoire, redirections refusées.
+- **Contrat Meetown** : tout changement du snapshot passe d'abord par `schemas/cfp-snapshot.schema.json`, puis par l'équipe Meetown. `test_meetown.py` valide la sortie contre ce schéma.
 - **Dépôt public** : aucun chemin local, aucune donnée client dans le code ni la doc.
 - **Dates de test relatives** à `time.time()`, jamais codées en dur : une date fixe finit par passer et casse les tests.
 - **Pas de tiret cadratin** dans les textes (message Chat, README, doc).

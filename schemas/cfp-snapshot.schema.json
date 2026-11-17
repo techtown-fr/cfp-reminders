@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/techtown-fr/cfp-reminders/schemas/cfp-snapshot.schema.json",
+  "title": "CFP snapshot pushed by cfp-reminders to Meetown",
+  "description": "Full list of CFPs currently open in one country, from developers.events. Each push replaces the previous one: a CFP missing from a later snapshot has closed or was removed upstream.",
+  "type": "object",
+  "required": ["source", "generatedAt", "country", "cfps"],
+  "additionalProperties": false,
+  "properties": {
+    "source": { "const": "developers.events" },
+    "generatedAt": { "type": "string", "format": "date-time", "description": "UTC time the snapshot was built." },
+    "country": { "type": "string", "examples": ["France"] },
+    "cfps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cfp" }
+    }
+  },
+  "$defs": {
+    "cfp": {
+      "type": "object",
+      "required": ["id", "name", "cfpUrl", "cfpDeadline", "eventStartDate", "city"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable key: the CFP URL. Unique in the upstream data, use it to upsert."
+        },
+        "name": { "type": "string", "examples": ["DevFest Nantes 2027"] },
+        "cfpUrl": { "type": "string", "format": "uri", "description": "Submission page." },
+        "cfpDeadline": { "type": "string", "format": "date", "description": "Last day to submit (YYYY-MM-DD)." },
+        "eventUrl": { "type": ["string", "null"], "format": "uri", "description": "Conference website." },
+        "eventStartDate": { "type": "string", "format": "date" },
+        "eventEndDate": { "type": ["string", "null"], "format": "date", "description": "Null for a one-day event." },
+        "city": { "type": "string", "examples": ["Nantes"] }
+      }
+    }
+  }
+}

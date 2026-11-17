@@ -68,7 +68,10 @@ cfp-reminders --country "Belgium"
 | `--chat` | Poster un rappel dans Google Chat au lieu d'afficher les tables | `false` |
 | `--webhook-url` | Webhook entrant Google Chat (ou variable `GOOGLE_CHAT_WEBHOOK_URL`) | aucun |
 | `--days` | Fenêtre du rappel : CFP qui ferment dans N jours | `30` |
-| `--dry-run` | Avec `--chat`, affiche le message sans le poster | `false` |
+| `--meetown` | Envoyer à Meetown tous les CFP ouverts du pays, en JSON | `false` |
+| `--meetown-url` | Endpoint Meetown (ou variable `MEETOWN_WEBHOOK_URL`) | aucun |
+| `--meetown-token` | Jeton Bearer Meetown (ou variable `MEETOWN_TOKEN`) | aucun |
+| `--dry-run` | Avec `--chat` ou `--meetown`, affiche ce qui serait envoyé sans le poster | `false` |
 
 ### Rappel hebdomadaire dans Google Chat
 
@@ -83,6 +86,16 @@ Mise en place :
 Chaque PR lance aussi ce workflow en dry-run. Le job `notify` est un check obligatoire sur `main`, avec `lint` et `test` : une PR qui casserait le rappel ne peut pas être mergée.
 
 À savoir : sur un dépôt public, GitHub désactive un workflow planifié après 60 jours sans activité. Un commit ou une réactivation depuis l'onglet *Actions* le relance.
+
+### Envoi vers Meetown
+
+`cfp-reminders --meetown` envoie en POST la liste complète des CFP ouverts du pays, au format décrit par [`schemas/cfp-snapshot.schema.json`](schemas/cfp-snapshot.schema.json). Chaque envoi remplace le précédent : un CFP absent est clos. La clé stable est l'URL du CFP (`id`). Un snapshot vide n'est jamais envoyé, pour ne pas effacer Meetown sur une panne de developers.events.
+
+Le jeton part dans l'en-tête `Authorization: Bearer`, uniquement vers une URL `https://`. Passer l'URL et le jeton par les variables d'environnement plutôt qu'en options, pour qu'ils n'apparaissent pas dans l'historique du shell.
+
+```bash
+cfp-reminders --meetown --dry-run   # Affiche le JSON, n'envoie rien
+```
 
 ## Développement
 

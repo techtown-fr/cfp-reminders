@@ -23,7 +23,7 @@ class ChatPostError(Exception):
     """Webhook call failed. The message never contains the webhook URL."""
 
 
-def _safe_link(link: str | None) -> str | None:
+def safe_link(link: str | None) -> str | None:
     if not link:
         return None
     link = link.strip().replace(" ", "%20")
@@ -37,7 +37,7 @@ def _safe_link(link: str | None) -> str | None:
 def _format_line(cfp: dict) -> str:
     conf = cfp["conf"]
     name = conf["name"].translate(_MARKUP)
-    link = _safe_link(cfp.get("link") or conf.get("hyperlink"))
+    link = safe_link(cfp.get("link") or conf.get("hyperlink"))
     title = f"<{link}|{name}>" if link else name
     city = conf.get("location", "").split(" (")[0].translate(_MARKUP)
     deadline = format_deadline(cfp["untilDate"], "%d/%m")

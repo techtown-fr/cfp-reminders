@@ -1,3 +1,4 @@
+import json
 import time
 from unittest.mock import MagicMock, patch
 
@@ -8,6 +9,7 @@ from click.testing import CliRunner
 from cfp_reminders.chat import ChatPostError
 from cfp_reminders.cli import main
 from cfp_reminders.display import DAY_SECONDS
+from cfp_reminders.meetown import MeetownPostError
 
 FAR_FUTURE_MS = int((time.time() + 365 * DAY_SECONDS) * 1000)
 
@@ -216,3 +218,97 @@ def test_chat_ignores_cache_and_fails_on_fetch_error(chat_env):
 def test_days_must_be_positive():
     result = CliRunner().invoke(main, ["--chat", "--dry-run", "--days", "0"])
     assert result.exit_code == 2
+
+
+MEETOWN_ENV = {
+    "MEETOWN_WEBHOOK_URL": "https://meetown.example/api?k=SECRETURL",
+    "MEETOWN_TOKEN": "SECRETTOKEN",
+}
+OPEN_CFPS = [
+    {**SAMPLE_CFPS[0], "link": "https://example.com/cfp1"},
+    SAMPLE_CFPS_GERMANY[0],
+]
+
+
+@pytest.fixture
+def meetown_env():
+    """Patch Cache, fetch_cfps and post_snapshot; tests set fetch's return."""
+    with (
+        patch("cfp_reminders.cli.Cache") as cache_cls,
+        patch("cfp_reminders.cli.fetch_cfps", return_value=OPEN_CFPS) as fetch,
+        patch("cfp_reminders.cli.post_snapshot") as post,
+    ):
+        cache_cls.return_value = _mock_cache(read_return=[], stale_return=[])
+        yield fetch, post, cache_cls
+
+
+def test_meetown_dry_run_prints_country_snapshot(meetown_env):
+    _, post, cache_cls = meetown_env
+    result = CliRunner().invoke(main, ["--meetown", "--dry-run"], env={})
+    assert result.exit_code == 0
+    snapshot = json.loads(result.output)
+    assert snapshot["country"] == "France"
+    assert [c["name"] for c in snapshot["cfps"]] == ["DevFest Paris"]
+    post.assert_not_called()
+    cache_cls.return_value.read.assert_not_called()
+
+
+def test_meetown_posts_with_url_and_token_from_env(meetown_env):
+    _, post, _ = meetown_env
+    result = CliRunner().invoke(main, ["--meetown"], env=MEETOWN_ENV)
+    assert result.exit_code == 0
+    url, token, snapshot = post.call_args.args
+    assert (url, token) == (
+        MEETOWN_ENV["MEETOWN_WEBHOOK_URL"],
+        MEETOWN_ENV["MEETOWN_TOKEN"],
+    )
+    assert len(snapshot["cfps"]) == 1
+    assert "1 CFP pushed" in result.output
+
+
+@pytest.mark.parametrize("missing", ["MEETOWN_WEBHOOK_URL", "MEETOWN_TOKEN"])
+def test_meetown_without_url_or_token_is_a_usage_error(missing):
+    env = {**MEETOWN_ENV, missing: ""}
+    result = CliRunner().invoke(main, ["--meetown"], env=env)
+    assert result.exit_code == 2
+    assert "MEETOWN_TOKEN" in result.output
+
+
+def test_meetown_and_chat_are_exclusive():
+    result = CliRunner().invoke(main, ["--meetown", "--chat", "--dry-run"])
+    assert result.exit_code == 2
+
+
+def test_meetown_post_failure_exits_1_without_secrets(meetown_env):
+    _, post, _ = meetown_env
+    post.side_effect = MeetownPostError("Meetown answered HTTP 401")
+    result = CliRunner().invoke(main, ["--meetown"], env=MEETOWN_ENV)
+    assert result.exit_code == 1
+    assert "HTTP 401" in result.output
+    assert "SECRET" not in result.output
+
+
+def test_meetown_fetch_failure_exits_1(meetown_env):
+    fetch, post, _ = meetown_env
+    fetch.side_effect = httpx.RequestError("down")
+    result = CliRunner().invoke(main, ["--meetown"], env=MEETOWN_ENV)
+    assert result.exit_code == 1
+    post.assert_not_called()
+
+
+def test_meetown_refuses_to_push_an_empty_snapshot(meetown_env):
+    fetch, post, _ = meetown_env
+    fetch.return_value = []
+    result = CliRunner().invoke(main, ["--meetown"], env=MEETOWN_ENV)
+    assert result.exit_code == 1
+    assert "unchanged" in result.output
+    post.assert_not_called()
+
+
+def test_meetown_reports_skipped_entries(meetown_env):
+    fetch, _, _ = meetown_env
+    no_date = {**OPEN_CFPS[0], "conf": {**OPEN_CFPS[0]["conf"], "date": []}}
+    fetch.return_value = [no_date]
+    result = CliRunner().invoke(main, ["--meetown", "--dry-run"], env={})
+    assert result.exit_code == 0
+    assert "1 CFP skipped" in result.stderr
